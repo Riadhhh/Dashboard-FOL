@@ -730,9 +730,7 @@ else:
         use_container_width=True,
     )
 
-
 st.divider()
-
 
 st.subheader(
     "Persentase Pass vs Fail Berdasarkan Driver"
@@ -754,8 +752,28 @@ if percentage_driver.empty:
 
 else:
 
+    if driver_analysis == "Pass":
+
+        percentage_ranking = (
+            percentage_driver
+            .sort_values(
+                "Persentase Pass",
+                ascending=False,
+            )
+        )
+
+    else:
+
+        percentage_ranking = (
+            percentage_driver
+            .sort_values(
+                "Persentase Fail",
+                ascending=False,
+            )
+        )
+
     max_percentage_driver = len(
-        percentage_driver
+        percentage_ranking
     )
 
     if max_percentage_driver >= 2:
@@ -773,24 +791,42 @@ else:
             key="percentage_driver_count",
         )
 
-        percentage_driver = (
-            percentage_driver
-            .sort_values(
-                "Total_FOL",
-                ascending=False,
-            )
-            .head(
-                selected_percentage_driver
-            )
+        selected_drivers = (
+            percentage_ranking
+            .head(selected_percentage_driver)
+            ["Nama Driver"]
+            .tolist()
         )
 
-    percentage_driver = (
-        percentage_driver
-        .sort_values(
-            "Total_FOL",
-            ascending=True,
+        percentage_driver = percentage_driver[
+            percentage_driver["Nama Driver"].isin(
+                selected_drivers
+            )
+        ]
+
+    if driver_analysis == "Pass":
+
+        driver_order = (
+            percentage_driver
+            .sort_values(
+                "Persentase Pass",
+                ascending=True,
+            )
+            ["Nama Driver"]
+            .tolist()
         )
-    )
+
+    else:
+
+        driver_order = (
+            percentage_driver
+            .sort_values(
+                "Persentase Fail",
+                ascending=True,
+            )
+            ["Nama Driver"]
+            .tolist()
+        )
 
     fig_percentage_driver = px.bar(
         percentage_driver,
@@ -801,6 +837,9 @@ else:
         ],
         barmode="stack",
         text_auto=".1f",
+        category_orders={
+            "Nama Driver": driver_order
+        },
         labels={
             "Nama Driver": "Nama Driver",
             "value": "Persentase (%)",
@@ -832,9 +871,7 @@ else:
         use_container_width=True,
     )
 
-
 st.divider()
-
 
 st.subheader(
     "Pass vs Fail Berdasarkan Depo"
@@ -854,19 +891,32 @@ if pass_fail_depo.empty:
 
 else:
 
-    depo_total = (
-        pass_fail_depo
-        .groupby("Depo")["Jumlah"]
-        .sum()
-        .reset_index()
-        .sort_values(
-            "Jumlah",
-            ascending=False,
+    if driver_analysis == "Pass":
+
+        depo_ranking = (
+            pass_fail_depo[
+                pass_fail_depo["Location"] == "Pass"
+            ]
+            .sort_values(
+                "Jumlah",
+                ascending=False,
+            )
         )
-    )
+
+    else:
+
+        depo_ranking = (
+            pass_fail_depo[
+                pass_fail_depo["Location"] == "Fail"
+            ]
+            .sort_values(
+                "Jumlah",
+                ascending=False,
+            )
+        )
 
     depo_order = (
-        depo_total
+        depo_ranking
         .sort_values(
             "Jumlah",
             ascending=True,
