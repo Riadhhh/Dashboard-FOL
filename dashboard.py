@@ -18,7 +18,6 @@ from utils.calculations import (
     calculate_fail_by_driver,
     calculate_pass_by_driver,
     calculate_pass_fail_by_driver,
-    calculate_pass_fail_percentage_by_driver,
     calculate_pass_fail_by_depo,
     calculate_fail_detail,
 )

@@ -149,54 +149,6 @@ def calculate_fail_by_driver(df):
 
     return summary
 
-
-def calculate_pass_fail_percentage_by_driver(df):
-    data = df[
-        df["Location"].isin(
-            ["Pass", "Fail"]
-        )
-    ].copy()
-
-    summary = (
-        data
-        .groupby(
-            [
-                "Nama Driver",
-                "Depo",
-            ]
-        )
-        .agg(
-            Total_FOL=(
-                "Location",
-                "size"
-            ),
-            Total_Pass=(
-                "Location",
-                lambda x: (x == "Pass").sum()
-            ),
-            Total_Fail=(
-                "Location",
-                lambda x: (x == "Fail").sum()
-            ),
-        )
-        .reset_index()
-    )
-
-    summary["Persentase Pass"] = (
-        summary["Total_Pass"]
-        / summary["Total_FOL"]
-        * 100
-    )
-
-    summary["Persentase Fail"] = (
-        summary["Total_Fail"]
-        / summary["Total_FOL"]
-        * 100
-    )
-
-    return summary
-
-
 def calculate_pass_fail_by_depo(df):
     summary = (
         df[
