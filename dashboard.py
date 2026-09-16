@@ -232,33 +232,22 @@ if selected_date_range is not None:
             )
         ].copy()
 
-if selected_depo:
+if selected_depo or selected_driver:
+    depo_condition = (
+        filtered_df["Depo"].isin(selected_depo)
+        if selected_depo
+        else False
+    )
+
+    driver_condition = (
+        filtered_df["Nama Driver"].isin(selected_driver)
+        if selected_driver
+        else False
+    )
+
     filtered_df = filtered_df[
-        filtered_df["Depo"].isin(
-            selected_depo
-        )
+        depo_condition | driver_condition
     ].copy()
-
-if selected_driver:
-    filtered_df = filtered_df[
-        filtered_df["Nama Driver"].isin(
-            selected_driver
-        )
-    ].copy()
-
-if selected_depo:
-    filtered_df = filtered_df[
-        filtered_df["Depo"].isin(
-            selected_depo
-        )
-    ]
-
-if selected_driver:
-    filtered_df = filtered_df[
-        filtered_df["Nama Driver"].isin(
-            selected_driver
-        )
-    ]
 
 total_filtered = (
     f"{len(filtered_df):,}"
@@ -473,18 +462,86 @@ else:
         ascending=False
     )
 
+if pass_data.empty and fail_data.empty:
+
+    st.info(
+        "Tidak terdapat data driver "
+        "untuk ditampilkan."
+    )
+
+else:
+
+    if driver_analysis == "Pass":
+
+        pass_data = pass_data.sort_values(
+            "Jumlah Pass",
+            ascending=False
+        )
+
+        fail_data = fail_data.sort_values(
+            "Jumlah Fail",
+            ascending=False
+        )
+
+    else:
+
+        fail_data = fail_data.sort_values(
+            "Jumlah Fail",
+            ascending=False
+        )
+
+        pass_data = pass_data.sort_values(
+            "Jumlah Pass",
+            ascending=False
+        )
+
 max_driver = max(
     len(pass_data),
     len(fail_data),
-    1
 )
 
-top_n = st.slider(
-    "Top N Driver",
-    min_value=1,
-    max_value=max_driver,
-    value=min(10, max_driver),
-)
+if max_driver <= 1:
+    top_n = 1
+else:
+    top_n = st.slider(
+        "Top N Driver",
+        min_value=1,
+        max_value=max_driver,
+        value=min(10, max_driver),
+        key="top_n_analysis",
+    )
+
+    pass_chart_data = pass_data.head(
+        top_n
+    )
+
+    fail_chart_data = fail_data.head(
+        top_n
+    )
+
+    col_pass, col_fail = st.columns(2)
+
+    with col_pass:
+
+        st.markdown(
+            "### Pass Tertinggi Berdasarkan Driver"
+        )
+
+    with col_fail:
+
+        st.markdown(
+            "### Fail Tertinggi Berdasarkan Driver"
+        )
+
+    pass_chart_data = pass_data.head(
+        top_n
+    )
+
+    fail_chart_data = fail_data.head(
+        top_n
+    )
+
+    col_pass, col_fail = st.columns(2)
 
 pass_chart_data = pass_data.head(
     top_n
@@ -626,7 +683,7 @@ else:
             key="pass_fail_driver_count",
         )
 
-        selected_drivers = (
+        selected_drivers_total = (
             driver_total
             .head(selected_driver_total)
             ["Nama Driver"]
@@ -635,7 +692,7 @@ else:
 
         pass_fail_driver = pass_fail_driver[
             pass_fail_driver["Nama Driver"].isin(
-                selected_drivers
+                selected_drivers_total
             )
         ]
 
@@ -757,13 +814,16 @@ else:
 
     max_driver = len(ranking_data)
 
-    top_n_driver = st.slider(
-        "Top N Driver",
-        min_value=1,
-        max_value=max_driver,
-        value=min(10, max_driver),
-        key="top_n_driver_comparison",
-    )
+    if max_driver <= 1:
+        top_n_driver = 1
+    else:
+        top_n_driver = st.slider(
+            "Top N Driver",
+            min_value=1,
+            max_value=max_driver,
+            value=min(10, max_driver),
+            key="top_n_driver_comparison",
+        )
 
     selected_drivers = ranking_data.head(
         top_n_driver
