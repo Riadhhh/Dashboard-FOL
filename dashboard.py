@@ -745,28 +745,13 @@ else:
         ascending=False
     )
 
-    driver_chart = driver_summary[
-        driver_summary["Nama Driver"].isin(
-            selected_drivers
-        )
-    ].copy()
-
-    driver_chart["Nama Driver"] = pd.Categorical(
-        driver_chart["Nama Driver"],
-        categories=selected_drivers,
-        ordered=True
-    )
-
-    driver_chart = driver_chart.sort_values(
-        "Nama Driver"
-    )
-
     display_mode_driver = st.selectbox(
         "Tampilkan Berdasarkan",
         [
-            "Jumlah",
             "Persentase",
+            "Jumlah",
         ],
+        index=0,
         key="driver_display_mode",
     )
 
@@ -784,6 +769,22 @@ else:
         top_n_driver
     ).index.tolist()
 
+    driver_chart = driver_summary[
+        driver_summary["Nama Driver"].isin(
+            selected_drivers
+        )
+    ].copy()
+
+    driver_chart["Nama Driver"] = pd.Categorical(
+        driver_chart["Nama Driver"],
+        categories=selected_drivers,
+        ordered=True
+    )
+
+    driver_chart = driver_chart.sort_values(
+        "Nama Driver"
+    )
+
     if display_mode_driver == "Jumlah":
 
         fig_driver_comparison = px.bar(
@@ -791,7 +792,7 @@ else:
             x="Nama Driver",
             y="Jumlah",
             color="Location",
-            barmode="group",
+            barmode="stack",
             text_auto=".0f",
             color_discrete_map={
                 "Pass": "#2E86DE",
@@ -828,7 +829,10 @@ else:
 
         total_driver = (
             driver_chart
-            .groupby("Nama Driver")["Jumlah"]
+            .groupby(
+                "Nama Driver",
+                observed=True
+            )["Jumlah"]
             .transform("sum")
         )
 
@@ -843,7 +847,7 @@ else:
             x="Nama Driver",
             y="Persentase",
             color="Location",
-            barmode="group",
+            barmode="stack",
             text_auto=".1f",
             color_discrete_map={
                 "Pass": "#2E86DE",
@@ -858,7 +862,7 @@ else:
 
         fig_driver_comparison.update_traces(
             texttemplate="%{y:.1f}%",
-            textposition="outside",
+            textposition="inside",
             hovertemplate=(
                 "<b>%{x}</b><br>"
                 "Status: %{fullData.name}<br>"
