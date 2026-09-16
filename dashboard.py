@@ -22,13 +22,11 @@ from utils.calculations import (
     calculate_fail_detail,
 )
 
-
 st.set_page_config(
     page_title="Dashboard FOL",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
 
 st.title("Dashboard FOL")
 
@@ -37,18 +35,14 @@ st.caption(
     "tanggal, driver, depo, serta status Pass dan Fail."
 )
 
-
 with st.sidebar:
-
     st.header("Pengaturan")
-
     uploaded_files = st.file_uploader(
         "Upload Data FOL",
         type=["xlsx", "xls"],
         accept_multiple_files=True,
         help="Upload satu atau beberapa file Excel FOL.",
     )
-
 
 if not uploaded_files:
 
@@ -59,15 +53,11 @@ if not uploaded_files:
 
     st.stop()
 
-
 dataframes = []
 error_files = []
 
-
 for uploaded_file in uploaded_files:
-
     try:
-
         df_file = read_excel_fol(
             uploaded_file
         )
@@ -77,7 +67,6 @@ for uploaded_file in uploaded_files:
         )
 
         if not valid:
-
             error_files.append(
                 f"{uploaded_file.name}: "
                 f"kolom tidak tersedia - "
@@ -95,14 +84,11 @@ for uploaded_file in uploaded_files:
         )
 
     except Exception as e:
-
         error_files.append(
             f"{uploaded_file.name}: {str(e)}"
         )
 
-
 if error_files:
-
     st.warning(
         "⚠️ Beberapa file tidak dapat diproses:"
     )
@@ -110,21 +96,17 @@ if error_files:
     for error in error_files:
         st.write(f"- {error}")
 
-
 if not dataframes:
-
     st.error(
         "❌ Tidak ada file yang berhasil diproses."
     )
 
     st.stop()
 
-
 df = pd.concat(
     dataframes,
     ignore_index=True
 )
-
 
 df["Location"] = (
     df["Location"]
@@ -141,7 +123,6 @@ df["Location"] = df["Location"].replace(
 df["Location"] = df["Location"].fillna(
     "Tidak Diketahui"
 )
-
 
 df["Nama Driver"] = (
     df["Nama Driver"]
@@ -165,11 +146,8 @@ df = df[
 ].copy()
 
 with st.sidebar:
-
     st.divider()
-
     st.header("Filter Data")
-
     st.subheader("Fokus Analisis Driver")
 
     driver_analysis = st.radio(
@@ -188,7 +166,6 @@ with st.sidebar:
     selected_date_range = None
 
     if min_date is not None and max_date is not None:
-
         selected_date_range = st.date_input(
             "Rentang Tanggal Order Priority",
             value=(
@@ -214,11 +191,9 @@ with st.sidebar:
     )
 
     if "Select All" in depo_selection:
-
         selected_depo = depo_options
 
     else:
-
         selected_depo = depo_selection
 
     driver_options = sorted(
@@ -238,11 +213,9 @@ with st.sidebar:
     )
 
     if "Select All" in driver_selection:
-
         selected_driver = driver_options
 
     else:
-
         selected_driver = driver_selection
 
 filtered_df = df.copy()
@@ -259,18 +232,14 @@ if selected_date_range is not None:
             )
         ].copy()
 
-
 if selected_depo:
-
     filtered_df = filtered_df[
         filtered_df["Depo"].isin(
             selected_depo
         )
     ].copy()
 
-
 if selected_driver:
-
     filtered_df = filtered_df[
         filtered_df["Nama Driver"].isin(
             selected_driver
@@ -278,7 +247,6 @@ if selected_driver:
     ].copy()
 
 if selected_depo:
-
     filtered_df = filtered_df[
         filtered_df["Depo"].isin(
             selected_depo
@@ -401,59 +369,88 @@ if daily_summary.empty:
     )
 
 else:
-    fig_daily = px.line(
-        daily_summary,
-        x="Tanggal Order Priority",
-        y="Jumlah",
-        color="Location",
-        markers=True,
-        color_discrete_map={
-            "Pass": "#2E86DE",
-            "Fail": "#E74C3C",
-        },
-        labels={
-            "Tanggal Order Priority": "Tanggal Order Priority",
-            "Jumlah": "Jumlah FOL",
-            "Location": "Status",
-        },
-        custom_data=[
-            "Total FOL",
-            "Persentase",
-        ],
+    daily_summary["Tanggal Order Priority"] = pd.to_datetime(
+        daily_summary["Tanggal Order Priority"],
+        errors="coerce"
     )
 
-    fig_daily.update_traces(
-        hovertemplate=(
-            "<b>%{x|%d-%b-%Y}</b><br>"
-            "Status: %{fullData.name}<br>"
-            "Jumlah: %{y:,.0f}<br>"
-            "Total FOL: %{customdata[0]:,.0f}<br>"
-            "Persentase: %{customdata[1]:.1f}%"
-            "<extra></extra>"
+    daily_summary["Jumlah"] = pd.to_numeric(
+        daily_summary["Jumlah"],
+        errors="coerce"
+    )
+
+    daily_summary["Total FOL"] = pd.to_numeric(
+        daily_summary["Total FOL"],
+        errors="coerce"
+    )
+
+    daily_summary["Persentase"] = pd.to_numeric(
+        daily_summary["Persentase"],
+        errors="coerce"
+    )
+
+    daily_summary = daily_summary.dropna(
+        subset=[
+            "Tanggal Order Priority",
+            "Jumlah",
+        ]
+    )
+
+    if daily_summary.empty:
+        st.info(
+            "Tidak terdapat data yang valid untuk menampilkan tren."
         )
-    )
 
-    fig_daily.update_layout(
-        xaxis=dict(
-            type="date",
-            tickformat="%d-%b-%Y",
-            tickangle=-45,
-            nticks=15,
-        ),
-        yaxis=dict(
-            tickformat=",.0f",
-            rangemode="tozero",
-        ),
-        hovermode="x unified",
-    )
+    else:
+        fig_daily = px.line(
+            daily_summary,
+            x="Tanggal Order Priority",
+            y="Jumlah",
+            color="Location",
+            markers=True,
+            labels={
+                "Tanggal Order Priority": "Tanggal Order Priority",
+                "Jumlah": "Jumlah FOL",
+                "Location": "Status",
+            },
+            custom_data=[
+                "Total FOL",
+                "Persentase",
+            ],
+        )
 
-    st.plotly_chart(
-        fig_daily,
-        use_container_width=True,
-        config={
-            "displayModeBar": True,
-        },
-    )
+        fig_daily.update_traces(
+            hovertemplate=(
+                "<b>%{x|%d-%b-%Y}</b><br>"
+                "Status: %{fullData.name}<br>"
+                "Jumlah: %{y:,.0f}<br>"
+                "Total FOL: %{customdata[0]:,.0f}<br>"
+                "Persentase: %{customdata[1]:.1f}%"
+                "<extra></extra>"
+            )
+        )
+
+        fig_daily.update_layout(
+            xaxis=dict(
+                type="date",
+                tickformat="%d-%b-%Y",
+                tickangle=-45,
+                nticks=15,
+            ),
+            yaxis=dict(
+                tickformat=",.0f",
+                rangemode="tozero",
+            ),
+            hovermode="x unified",
+        )
+
+        st.plotly_chart(
+            fig_daily,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+        )
 
 st.divider()
 
@@ -513,7 +510,6 @@ fail_chart_data = fail_data.head(
 col_pass, col_fail = st.columns(2)
 
 with col_pass:
-
     st.markdown(
         "### Pass Tertinggi Berdasarkan Driver"
     )
