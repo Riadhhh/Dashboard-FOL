@@ -184,16 +184,14 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    min_date, max_date = get_data_period(
-        df
-    )
+    min_date, max_date = get_data_period(df)
 
     selected_date_range = None
 
     if min_date is not None and max_date is not None:
 
         selected_date_range = st.date_input(
-            "Rentang Tanggal DO",
+            "Rentang Tanggal Order Priority",
             value=(
                 min_date.date(),
                 max_date.date(),
@@ -202,11 +200,6 @@ with st.sidebar:
             max_value=max_date.date(),
             format="DD-MM-YYYY",
         )
-
-    show_unknown_date = st.checkbox(
-        "Tampilkan Tanggal DO Tidak Diketahui",
-        value=True,
-    )
 
     depo_options = get_unique_values(
         df,
@@ -253,40 +246,19 @@ with st.sidebar:
 
         selected_driver = driver_selection
 
-
 filtered_df = df.copy()
 
-
 if selected_date_range is not None:
-
     if len(selected_date_range) == 2:
 
         start_date, end_date = selected_date_range
 
-        date_mask = (
-            filtered_df["Tanggal DO"]
-            .dt.date
-            .between(
+        filtered_df = filtered_df[
+            filtered_df["Tanggal Order Priority"].dt.date.between(
                 start_date,
                 end_date,
             )
-        )
-
-        if show_unknown_date:
-
-            unknown_date_mask = (
-                filtered_df["Tanggal DO"].isna()
-            )
-
-            filtered_df = filtered_df[
-                date_mask | unknown_date_mask
-            ]
-
-        else:
-
-            filtered_df = filtered_df[
-                date_mask
-            ]
+        ].copy()
 
 
 if selected_depo:
@@ -295,7 +267,7 @@ if selected_depo:
         filtered_df["Depo"].isin(
             selected_depo
         )
-    ]
+    ].copy()
 
 
 if selected_driver:
@@ -304,58 +276,7 @@ if selected_driver:
         filtered_df["Nama Driver"].isin(
             selected_driver
         )
-    ]
-
-if selected_date_range:
-
-    if (
-        isinstance(
-            selected_date_range,
-            tuple,
-        )
-        and len(selected_date_range) == 2
-    ):
-
-        start_date = pd.Timestamp(
-            selected_date_range[0]
-        )
-
-        end_date = (
-            pd.Timestamp(
-                selected_date_range[1]
-            )
-            + pd.Timedelta(days=1)
-        )
-
-        known_date_mask = (
-            filtered_df["Tanggal DO"].notna()
-            & (
-                filtered_df["Tanggal DO"]
-                >= start_date
-            )
-            & (
-                filtered_df["Tanggal DO"]
-                < end_date
-            )
-        )
-
-        unknown_date_mask = (
-            filtered_df["Tanggal DO"].isna()
-        )
-
-        if show_unknown_date:
-
-            filtered_df = filtered_df[
-                known_date_mask
-                | unknown_date_mask
-            ]
-
-        else:
-
-            filtered_df = filtered_df[
-                known_date_mask
-            ]
-
+    ].copy()
 
 if selected_depo:
 
@@ -467,7 +388,7 @@ else:
 st.divider()
 
 st.subheader(
-    "Tren FOL Berdasarkan Tanggal DO"
+    "Tren FOL Berdasarkan Tanggal Order Priority"
 )
 
 daily_summary = calculate_daily_summary(
@@ -476,14 +397,14 @@ daily_summary = calculate_daily_summary(
 
 if daily_summary.empty:
     st.info(
-        "Tidak terdapat data dengan Tanggal DO "
+        "Tidak terdapat data dengan Tanggal Order Priority "
         "yang dapat ditampilkan."
     )
 
 else:
     fig_daily = px.line(
         daily_summary,
-        x="Tanggal DO",
+        x="Tanggal Order Priority",
         y="Jumlah",
         color="Location",
         markers=True,
@@ -492,7 +413,7 @@ else:
             "Fail": "#E74C3C",
         },
         labels={
-            "Tanggal DO": "Tanggal DO",
+            "Tanggal Order Priority": "Tanggal Order Priority",
             "Jumlah": "Jumlah FOL",
             "Location": "Status",
         },
@@ -535,7 +456,7 @@ else:
         },
     )
 
-st.divider()    
+st.divider()
 
 st.subheader("Analisis FOL Berdasarkan Driver")
 
@@ -612,12 +533,12 @@ with col_pass:
     )
 
     fig_pass_driver.update_traces(
-    hovertemplate=(
-        "<b>%{x}</b><br>"
-        "Depo: %{customdata[0]}<br>"
-        "Jumlah Pass: %{y:,.0f}"
-        "<extra></extra>"
-    ),
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Depo: %{customdata[0]}<br>"
+            "Jumlah Pass: %{y:,.0f}"
+            "<extra></extra>"
+        ),
     )
 
     fig_pass_driver.update_layout(
@@ -1133,7 +1054,7 @@ if fail_detail.empty:
 else:
     detail_columns = [
         "Depo",
-        "Tanggal DO Tampilan",
+        "Tanggal Order Priority Tampilan",
         "Nama Driver",
         "Location",
     ]
@@ -1150,7 +1071,7 @@ else:
 
     detail_display = detail_display.rename(
         columns={
-            "Tanggal DO Tampilan": "Tanggal DO",
+            "Tanggal Order Priority Tampilan": "Tanggal Order Priority",
         }
     )
 

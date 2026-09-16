@@ -3,14 +3,14 @@ import pandas as pd
 # Kolom yang wajib tersedia pada file FOL
 REQUIRED_COLUMNS = [
     "Depo",
-    "Tanggal DO",
+    "Tanggal Order Priority",
     "Location",
     "Nama Driver",
 ]
 
 VALID_DRIVERS = [
     "Dedi Siswanto",
-    "M  Hafizzultt",
+    "M  Hafizzul",
     "Hendri",
     "Didiet Satriawandy Saragih",
     "ANJU SALMAN FAHRAUZI",
@@ -90,27 +90,22 @@ def clean_data(df):
         "Driver Tidak Terdata"
     )
 
-    # Mengubah Tanggal DO ke format tanggal
-    df["Tanggal DO"] = pd.to_datetime(
-        df["Tanggal DO"],
+    # Mengubah Tanggal Order Priority ke format tanggal
+    df["Tanggal Order Priority"] = pd.to_datetime(
+        df["Tanggal Order Priority"],
         errors="coerce"
     )
 
-    # Membuat kolom tanggal untuk kebutuhan tampilan
-    df["Tanggal DO Tampilan"] = df["Tanggal DO"].dt.strftime(
-        "%d-%b-%Y"
-    )
-
-    # Memberikan label pada tanggal DO yang kosong
-    df["Tanggal DO Tampilan"] = df["Tanggal DO Tampilan"].fillna(
-        "Tidak Diketahui"
+    df["Tanggal Order Priority Tampilan"] = (
+        df["Tanggal Order Priority"]
+        .dt.strftime("%d-%b-%Y")
     )
 
     return df
 
 
 def get_data_period(df):
-    valid_dates = df["Tanggal DO"].dropna()
+    valid_dates = df["Tanggal Order Priority"].dropna()
 
     if valid_dates.empty:
         return None, None

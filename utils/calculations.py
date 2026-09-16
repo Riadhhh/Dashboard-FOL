@@ -41,25 +41,32 @@ def calculate_location_summary(df):
 
 
 def calculate_daily_summary(df):
-    daily_data = df.dropna(subset=["Tanggal DO"]).copy()
+    daily_data = df.dropna(
+        subset=["Tanggal Order Priority"]
+    ).copy()
 
     summary = (
         daily_data
-        .groupby(["Tanggal DO", "Location"])
+        .groupby(
+            [
+                "Tanggal Order Priority",
+                "Location",
+            ]
+        )
         .size()
         .reset_index(name="Jumlah")
     )
 
     total_daily = (
         daily_data
-        .groupby("Tanggal DO")
+        .groupby("Tanggal Order Priority")
         .size()
         .reset_index(name="Total FOL")
     )
 
     summary = summary.merge(
         total_daily,
-        on="Tanggal DO",
+        on="Tanggal Order Priority",
         how="left"
     )
 
@@ -69,7 +76,10 @@ def calculate_daily_summary(df):
         * 100
     )
 
-    return summary.sort_values("Tanggal DO")
+    return summary.sort_values(
+        "Tanggal Order Priority"
+    )
+
 
 def calculate_pass_fail_by_driver(df):
     summary = (
@@ -79,7 +89,11 @@ def calculate_pass_fail_by_driver(df):
             )
         ]
         .groupby(
-            ["Nama Driver", "Depo", "Location"]
+            [
+                "Nama Driver",
+                "Depo",
+                "Location",
+            ]
         )
         .size()
         .reset_index(name="Jumlah")
@@ -87,19 +101,6 @@ def calculate_pass_fail_by_driver(df):
 
     return summary
 
-def calculate_fail_by_driver(df):
-    fail_data = df[
-        df["Location"] == "Fail"
-    ].copy()
-
-    summary = (
-        fail_data["Nama Driver"]
-        .value_counts()
-        .rename_axis("Nama Driver")
-        .reset_index(name="Jumlah Fail")
-    )
-
-    return summary
 
 def calculate_pass_by_driver(df):
     pass_data = df[
@@ -109,7 +110,10 @@ def calculate_pass_by_driver(df):
     summary = (
         pass_data
         .groupby(
-            ["Nama Driver", "Depo"]
+            [
+                "Nama Driver",
+                "Depo",
+            ]
         )
         .size()
         .reset_index(name="Jumlah Pass")
@@ -121,6 +125,7 @@ def calculate_pass_by_driver(df):
 
     return summary
 
+
 def calculate_fail_by_driver(df):
     fail_data = df[
         df["Location"] == "Fail"
@@ -129,7 +134,10 @@ def calculate_fail_by_driver(df):
     summary = (
         fail_data
         .groupby(
-            ["Nama Driver", "Depo"]
+            [
+                "Nama Driver",
+                "Depo",
+            ]
         )
         .size()
         .reset_index(name="Jumlah Fail")
@@ -141,6 +149,7 @@ def calculate_fail_by_driver(df):
 
     return summary
 
+
 def calculate_pass_fail_percentage_by_driver(df):
     data = df[
         df["Location"].isin(
@@ -149,11 +158,18 @@ def calculate_pass_fail_percentage_by_driver(df):
     ].copy()
 
     summary = (
-        data.groupby(
-            ["Nama Driver", "Depo"]
+        data
+        .groupby(
+            [
+                "Nama Driver",
+                "Depo",
+            ]
         )
         .agg(
-            Total_FOL=("Location", "size"),
+            Total_FOL=(
+                "Location",
+                "size"
+            ),
             Total_Pass=(
                 "Location",
                 lambda x: (x == "Pass").sum()
@@ -180,20 +196,6 @@ def calculate_pass_fail_percentage_by_driver(df):
 
     return summary
 
-    summary["Persentase Pass"] = (
-        summary["Total_Pass"]
-        / summary["Total_FOL"]
-        * 100
-    )
-
-    summary["Persentase Fail"] = (
-        summary["Total_Fail"]
-        / summary["Total_FOL"]
-        * 100
-    )
-
-    return summary
-
 
 def calculate_pass_fail_by_depo(df):
     summary = (
@@ -203,7 +205,10 @@ def calculate_pass_fail_by_depo(df):
             )
         ]
         .groupby(
-            ["Depo", "Location"]
+            [
+                "Depo",
+                "Location",
+            ]
         )
         .size()
         .reset_index(name="Jumlah")
@@ -218,8 +223,7 @@ def calculate_fail_detail(df):
     ].copy()
 
     return fail_data.sort_values(
-        "Tanggal DO",
+        "Tanggal Order Priority",
         ascending=False,
         na_position="last"
     )
-
