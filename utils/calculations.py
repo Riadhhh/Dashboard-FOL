@@ -28,7 +28,6 @@ def calculate_kpis(df):
         "persentase_fail": persentase_fail,
     }
 
-
 def calculate_location_summary(df):
     summary = (
         df["Location"]
@@ -39,11 +38,21 @@ def calculate_location_summary(df):
 
     return summary
 
-
 def calculate_daily_summary(df):
+    columns = [
+        "Tanggal Order Priority",
+        "Location",
+        "Jumlah",
+        "Total FOL",
+        "Persentase",
+    ]
+
     daily_data = df.dropna(
         subset=["Tanggal Order Priority"]
     ).copy()
+
+    if daily_data.empty:
+        return pd.DataFrame(columns=columns)
 
     summary = (
         daily_data
@@ -67,7 +76,7 @@ def calculate_daily_summary(df):
     summary = summary.merge(
         total_daily,
         on="Tanggal Order Priority",
-        how="left"
+        how="left",
     )
 
     summary["Persentase"] = (
@@ -79,7 +88,6 @@ def calculate_daily_summary(df):
     return summary.sort_values(
         "Tanggal Order Priority"
     )
-
 
 def calculate_pass_fail_by_driver(df):
     summary = (

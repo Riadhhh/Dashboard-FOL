@@ -389,68 +389,55 @@ else:
         errors="coerce"
     )
 
-    daily_summary = daily_summary.dropna(
-        subset=[
-            "Tanggal Order Priority",
-            "Jumlah",
-        ]
+    fig_daily = px.line(
+        daily_summary,
+        x="Tanggal Order Priority",
+        y="Jumlah",
+        color="Location",
+        markers=True,
+        labels={
+            "Tanggal Order Priority": "Tanggal Order Priority",
+            "Jumlah": "Jumlah FOL",
+            "Location": "Status",
+        },
+        custom_data=[
+            "Total FOL",
+            "Persentase",
+        ],
     )
 
-    if daily_summary.empty:
-        st.info(
-            "Tidak terdapat data yang valid untuk menampilkan tren."
+    fig_daily.update_traces(
+        hovertemplate=(
+            "<b>%{x|%d-%b-%Y}</b><br>"
+            "Status: %{fullData.name}<br>"
+            "Jumlah: %{y:,.0f}<br>"
+            "Total FOL: %{customdata[0]:,.0f}<br>"
+            "Persentase: %{customdata[1]:.1f}%"
+            "<extra></extra>"
         )
+    )
 
-    else:
-        fig_daily = px.line(
-            daily_summary,
-            x="Tanggal Order Priority",
-            y="Jumlah",
-            color="Location",
-            markers=True,
-            labels={
-                "Tanggal Order Priority": "Tanggal Order Priority",
-                "Jumlah": "Jumlah FOL",
-                "Location": "Status",
-            },
-            custom_data=[
-                "Total FOL",
-                "Persentase",
-            ],
-        )
+    fig_daily.update_layout(
+        xaxis=dict(
+            type="date",
+            tickformat="%d-%b-%Y",
+            tickangle=-45,
+            nticks=15,
+        ),
+        yaxis=dict(
+            tickformat=",.0f",
+            rangemode="tozero",
+        ),
+        hovermode="x unified",
+    )
 
-        fig_daily.update_traces(
-            hovertemplate=(
-                "<b>%{x|%d-%b-%Y}</b><br>"
-                "Status: %{fullData.name}<br>"
-                "Jumlah: %{y:,.0f}<br>"
-                "Total FOL: %{customdata[0]:,.0f}<br>"
-                "Persentase: %{customdata[1]:.1f}%"
-                "<extra></extra>"
-            )
-        )
-
-        fig_daily.update_layout(
-            xaxis=dict(
-                type="date",
-                tickformat="%d-%b-%Y",
-                tickangle=-45,
-                nticks=15,
-            ),
-            yaxis=dict(
-                tickformat=",.0f",
-                rangemode="tozero",
-            ),
-            hovermode="x unified",
-        )
-
-        st.plotly_chart(
-            fig_daily,
-            use_container_width=True,
-            config={
-                "displayModeBar": True,
-            },
-        )
+    st.plotly_chart(
+        fig_daily,
+        use_container_width=True,
+        config={
+            "displayModeBar": True,
+        },
+    )
 
 st.divider()
 
