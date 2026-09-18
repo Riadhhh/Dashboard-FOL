@@ -6,6 +6,7 @@ REQUIRED_COLUMNS = [
     "Tanggal Order Priority",
     "Location",
     "Nama Driver",
+    "Week",
 ]
 
 VALID_DRIVERS = [
@@ -93,6 +94,11 @@ def clean_data(df):
     # Mengubah Tanggal Order Priority ke format tanggal
     df["Tanggal Order Priority"] = pd.to_datetime(
         df["Tanggal Order Priority"],
+        errors="coerce"
+    )
+
+    df["Week"] = pd.to_numeric(
+        df["Week"],
         errors="coerce"
     )
 
