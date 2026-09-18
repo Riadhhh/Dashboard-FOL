@@ -482,12 +482,12 @@ else:
         x="Tanggal Order Priority",
         y="Jumlah",
         color="Location",
-        text="Jumlah",
         markers=True,
+        text="Jumlah",
         color_discrete_map={
             "Pass": "#008000",
             "Fail": "#E74C3C",
-        },
+        }, 
         labels={
             "Tanggal Order Priority": (
                 "Tanggal Order Priority"
@@ -502,6 +502,8 @@ else:
     )
 
     fig_daily.update_traces(
+        texttemplate="%{text:,.0f}",
+        textposition="top center",
         hovertemplate=(
             "<b>%{x|%d-%b-%Y}</b><br>"
             "Status: %{fullData.name}<br>"
