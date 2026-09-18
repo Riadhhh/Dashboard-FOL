@@ -482,6 +482,7 @@ else:
         x="Tanggal Order Priority",
         y="Jumlah",
         color="Location",
+        text="Jumlah",
         markers=True,
         color_discrete_map={
             "Pass": "#008000",
