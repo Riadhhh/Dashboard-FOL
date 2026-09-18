@@ -408,7 +408,7 @@ else:
         values="Jumlah",
         color="Location",
         color_discrete_map={
-            "Pass": "#2E86DE",
+            "Pass": "#008000",
             "Fail": "#E74C3C",
         },
     )
@@ -483,6 +483,10 @@ else:
         y="Jumlah",
         color="Location",
         markers=True,
+        color_discrete_map={
+            "Pass": "#008000",
+            "Fail": "#E74C3C",
+        },
         labels={
             "Tanggal Order Priority": (
                 "Tanggal Order Priority"
@@ -615,7 +619,7 @@ else:
                 text_auto=True,
                 custom_data=["Depo"],
                 color_discrete_sequence=[
-                    "#2E86DE"
+                    "#008000"
                 ],
                 labels={
                     "Nama Driver": "Nama Driver",
@@ -794,7 +798,7 @@ else:
         text="Jumlah",
         custom_data=["Depo"],
         color_discrete_map={
-            "Pass": "#2E86DE",
+            "Pass": "#008000",
             "Fail": "#E74C3C",
         },
         category_orders={
@@ -954,7 +958,7 @@ else:
             barmode="stack",
             text_auto=".0f",
             color_discrete_map={
-                "Pass": "#2E86DE",
+                "Pass": "#008000",
                 "Fail": "#E74C3C",
             },
             labels={
@@ -1009,7 +1013,7 @@ else:
             barmode="stack",
             text_auto=".1f",
             color_discrete_map={
-                "Pass": "#2E86DE",
+                "Pass": "#008000",
                 "Fail": "#E74C3C",
             },
             labels={
@@ -1090,7 +1094,7 @@ else:
             barmode="group",
             text_auto=".0f",
             color_discrete_map={
-                "Pass": "#2E86DE",
+                "Pass": "#008000",
                 "Fail": "#E74C3C",
             },
             labels={
@@ -1144,7 +1148,7 @@ else:
             barmode="group",
             text_auto=".1f%",
             color_discrete_map={
-                "Pass": "#2E86DE",
+                "Pass": "#008000",
                 "Fail": "#E74C3C",
             },
             labels={
