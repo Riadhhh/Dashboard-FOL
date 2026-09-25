@@ -36,6 +36,7 @@ st.caption(
 )
 
 with st.sidebar:
+
     st.header("Pengaturan")
 
     uploaded_files = st.file_uploader(
@@ -100,6 +101,7 @@ if error_files:
     )
 
     for error in error_files:
+
         st.write(
             f"- {error}"
         )
@@ -155,10 +157,12 @@ df = df[
 ].copy()
 
 if "week_selection" not in st.session_state:
+
     st.session_state.week_selection = []
 
 
 def update_week_selection():
+
     st.session_state.week_selection = (
         st.session_state.week_filter
     )
@@ -185,7 +189,9 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    min_date, max_date = get_data_period(df)
+    min_date, max_date = get_data_period(
+        df
+    )
 
     if st.session_state.week_selection:
 
@@ -386,53 +392,194 @@ col5.metric(
 
 st.divider()
 
-st.subheader(
-    "Distribusi Pass vs Fail"
-)
+col_distribution, col_depo = st.columns(2)
 
-location_summary = calculate_location_summary(
-    filtered_df
-)
+with col_distribution:
 
-if location_summary.empty:
-
-    st.info(
-        "Tidak terdapat data untuk ditampilkan."
+    st.subheader(
+        "Distribusi Pass vs Fail"
     )
 
-else:
-
-    fig_location = px.pie(
-        location_summary,
-        names="Location",
-        values="Jumlah",
-        color="Location",
-        color_discrete_map={
-            "Pass": "#008000",
-            "Fail": "#E74C3C",
-        },
+    location_summary = calculate_location_summary(
+        filtered_df
     )
 
-    fig_location.update_traces(
-        texttemplate=(
-            "%{label}<br>%{percent:.1%}"
-        ),
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Jumlah FOL: %{value:,.0f}<br>"
-            "Persentase: %{percent:.1%}"
-            "<extra></extra>"
-        ),
+    if location_summary.empty:
+
+        st.info(
+            "Tidak terdapat data untuk ditampilkan."
+        )
+
+    else:
+
+        fig_location = px.pie(
+            location_summary,
+            names="Location",
+            values="Jumlah",
+            color="Location",
+            color_discrete_map={
+                "Pass": "#008000",
+                "Fail": "#E74C3C",
+            },
+        )
+
+        fig_location.update_traces(
+            texttemplate=(
+                "%{label}<br>%{percent:.1%}"
+            ),
+            hovertemplate=(
+                "<b>%{label}</b><br>"
+                "Jumlah FOL: %{value:,.0f}<br>"
+                "Persentase: %{percent:.1%}"
+                "<extra></extra>"
+            ),
+        )
+
+        fig_location.update_layout(
+            legend_title_text="Status",
+        )
+
+        st.plotly_chart(
+            fig_location,
+            use_container_width=True,
+            key="location_distribution_chart",
+        )
+
+with col_depo:
+
+    st.subheader(
+        "Pass vs Fail Berdasarkan Depo"
     )
 
-    fig_location.update_layout(
-        legend_title_text="Status",
+    depo_summary = calculate_pass_fail_by_depo(
+        filtered_df
     )
 
-    st.plotly_chart(
-        fig_location,
-        use_container_width=True,
-    )
+    if depo_summary.empty:
+
+        st.info(
+            "Tidak terdapat data depo "
+            "untuk ditampilkan."
+        )
+
+    else:
+
+        display_mode = st.selectbox(
+            "Tampilkan Berdasarkan",
+            [
+                "Persentase",
+                "Jumlah",
+            ],
+            key="depo_display_mode",
+        )
+
+        depo_chart = depo_summary.copy()
+
+        if display_mode == "Jumlah":
+
+            fig_depo = px.bar(
+                depo_chart,
+                x="Depo",
+                y="Jumlah",
+                color="Location",
+                barmode="group",
+                text_auto=".0f",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                labels={
+                    "Depo": "Nama Depo",
+                    "Jumlah": "Jumlah FOL",
+                    "Location": "Status",
+                },
+            )
+
+            fig_depo.update_traces(
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Jumlah: %{y:,.0f}"
+                    "<extra></extra>"
+                )
+            )
+
+            fig_depo.update_layout(
+                yaxis=dict(
+                    title="Jumlah FOL",
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                ),
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+            )
+
+        else:
+
+            total_depo = (
+                depo_chart
+                .groupby(
+                    "Depo"
+                )["Jumlah"]
+                .transform("sum")
+            )
+
+            depo_chart["Persentase"] = (
+                depo_chart["Jumlah"]
+                / total_depo
+                * 100
+            )
+
+            fig_depo = px.bar(
+                depo_chart,
+                x="Depo",
+                y="Persentase",
+                color="Location",
+                barmode="group",
+                text_auto=".1f",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                labels={
+                    "Depo": "Nama Depo",
+                    "Persentase": "Persentase (%)",
+                    "Location": "Status",
+                },
+            )
+
+            fig_depo.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Persentase: %{y:.1f}%"
+                    "<extra></extra>"
+                )
+            )
+
+            fig_depo.update_layout(
+                yaxis=dict(
+                    title="Persentase (%)",
+                    range=[0, 100],
+                    ticksuffix="%",
+                    dtick=20,
+                ),
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+            )
+
+        st.plotly_chart(
+            fig_depo,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+            key="depo_comparison_chart",
+        )
 
 st.divider()
 
@@ -477,56 +624,121 @@ else:
         errors="coerce"
     )
 
-    fig_daily = px.line(
-        daily_summary,
-        x="Tanggal Order Priority",
-        y="Jumlah",
-        color="Location",
-        markers=True,
-        text="Jumlah",
-        color_discrete_map={
-            "Pass": "#008000",
-            "Fail": "#E74C3C",
-        }, 
-        labels={
-            "Tanggal Order Priority": (
-                "Tanggal Order Priority"
-            ),
-            "Jumlah": "Jumlah FOL",
-            "Location": "Status",
-        },
-        custom_data=[
-            "Total FOL",
-            "Persentase",
-        ],
+    display_mode_daily = st.selectbox(
+        "Tampilkan Berdasarkan",
+        ["Persentase", "Jumlah"],
+        index=0,
+        key="daily_trend_display_mode",
     )
 
-    fig_daily.update_traces(
-        texttemplate="%{text:,.0f}",
-        textposition="top center",
-        hovertemplate=(
-            "<b>%{x|%d-%b-%Y}</b><br>"
-            "Status: %{fullData.name}<br>"
-            "Jumlah: %{y:,.0f}<br>"
-            "Total FOL: %{customdata[0]:,.0f}<br>"
-            "Persentase: %{customdata[1]:.1f}%"
-            "<extra></extra>"
+    if display_mode_daily == "Persentase":
+
+        fig_daily = px.line(
+            daily_summary,
+            x="Tanggal Order Priority",
+            y="Persentase",
+            color="Location",
+            markers=True,
+            text="Persentase",
+            color_discrete_map={
+                "Pass": "#008000",
+                "Fail": "#E74C3C",
+            },
+            labels={
+                "Tanggal Order Priority": (
+                    "Tanggal Order Priority"
+                ),
+                "Persentase": "Persentase FOL",
+                "Location": "Status",
+            },
+            custom_data=[
+                "Jumlah",
+                "Total FOL",
+            ],
         )
-    )
 
-    fig_daily.update_layout(
-        xaxis=dict(
-            type="date",
-            tickformat="%d-%b-%Y",
-            tickangle=-45,
-            nticks=15,
-        ),
-        yaxis=dict(
-            tickformat=",.0f",
-            rangemode="tozero",
-        ),
-        hovermode="x unified",
-    )
+        fig_daily.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="top center",
+            hovertemplate=(
+                "<b>%{x|%d-%b-%Y}</b><br>"
+                "Status: %{fullData.name}<br>"
+                "Persentase: %{y:.1f}%<br>"
+                "Jumlah: %{customdata[0]:,.0f}<br>"
+                "Total FOL: %{customdata[1]:,.0f}"
+                "<extra></extra>"
+            )
+        )
+
+        fig_daily.update_layout(
+            xaxis=dict(
+                type="date",
+                tickformat="%d-%b-%Y",
+                tickangle=-45,
+                nticks=15,
+            ),
+            yaxis=dict(
+                title="Persentase FOL",
+                tickformat=".1f",
+                ticksuffix="%",
+                rangemode="tozero",
+            ),
+            hovermode="x unified",
+        )
+
+    else:
+
+        fig_daily = px.line(
+            daily_summary,
+            x="Tanggal Order Priority",
+            y="Jumlah",
+            color="Location",
+            markers=True,
+            text="Jumlah",
+            color_discrete_map={
+                "Pass": "#008000",
+                "Fail": "#E74C3C",
+            },
+            labels={
+                "Tanggal Order Priority": (
+                    "Tanggal Order Priority"
+                ),
+                "Jumlah": "Jumlah FOL",
+                "Location": "Status",
+            },
+            custom_data=[
+                "Persentase",
+                "Total FOL",
+            ],
+        )
+
+        fig_daily.update_traces(
+            texttemplate="%{text:,.0f}",
+            textposition="top center",
+            hovertemplate=(
+                "<b>%{x|%d-%b-%Y}</b><br>"
+                "Status: %{fullData.name}<br>"
+                "Jumlah: %{y:,.0f}<br>"
+                "Persentase: %{customdata[0]:.1f}%<br>"
+                "Total FOL: %{customdata[1]:,.0f}"
+                "<extra></extra>"
+            )
+        )
+
+        fig_daily.update_layout(
+            xaxis=dict(
+                type="date",
+                tickformat="%d-%b-%Y",
+                tickangle=-45,
+                nticks=15,
+            ),
+            yaxis=dict(
+                title="Jumlah FOL",
+                tickformat=",.0f",
+                rangemode="tozero",
+            ),
+            hovermode="x unified",
+        )
 
     st.plotly_chart(
         fig_daily,
@@ -534,6 +746,7 @@ else:
         config={
             "displayModeBar": True,
         },
+        key="daily_trend_chart",
     )
 
 st.divider()
@@ -550,16 +763,6 @@ fail_data = calculate_fail_by_driver(
     filtered_df
 )
 
-pass_data = pass_data.sort_values(
-    "Jumlah Pass",
-    ascending=False
-)
-
-fail_data = fail_data.sort_values(
-    "Jumlah Fail",
-    ascending=False
-)
-
 if pass_data.empty and fail_data.empty:
 
     st.info(
@@ -569,292 +772,9 @@ if pass_data.empty and fail_data.empty:
 
 else:
 
-    max_driver = max(
-        len(pass_data),
-        len(fail_data),
+    driver_summary = calculate_pass_fail_by_driver(
+        filtered_df
     )
-
-    if max_driver <= 1:
-
-        top_n = 1
-
-    else:
-
-        top_n = st.slider(
-            "Top N Driver",
-            min_value=1,
-            max_value=max_driver,
-            value=min(
-                10,
-                max_driver
-            ),
-            key="top_n_analysis",
-        )
-
-    pass_chart_data = pass_data.head(
-        top_n
-    )
-
-    fail_chart_data = fail_data.head(
-        top_n
-    )
-
-    col_pass, col_fail = st.columns(2)
-
-    with col_pass:
-
-        st.markdown(
-            "### Pass Tertinggi Berdasarkan Driver"
-        )
-
-        if pass_chart_data.empty:
-
-            st.info(
-                "Tidak terdapat data Pass."
-            )
-
-        else:
-
-            fig_pass_driver = px.bar(
-                pass_chart_data,
-                x="Nama Driver",
-                y="Jumlah Pass",
-                text_auto=True,
-                custom_data=["Depo"],
-                color_discrete_sequence=[
-                    "#008000"
-                ],
-                labels={
-                    "Nama Driver": "Nama Driver",
-                    "Jumlah Pass": "Jumlah Pass",
-                },
-            )
-
-            fig_pass_driver.update_traces(
-                hovertemplate=(
-                    "<b>%{x}</b><br>"
-                    "Depo: %{customdata[0]}<br>"
-                    "Jumlah Pass: %{y:,.0f}"
-                    "<extra></extra>"
-                ),
-            )
-
-            fig_pass_driver.update_layout(
-                xaxis=dict(
-                    tickangle=-45,
-                ),
-                showlegend=False,
-            )
-
-            st.plotly_chart(
-                fig_pass_driver,
-                use_container_width=True,
-                config={
-                    "displayModeBar": True,
-                },
-            )
-
-    with col_fail:
-
-        st.markdown(
-            "### Fail Tertinggi Berdasarkan Driver"
-        )
-
-        if fail_chart_data.empty:
-
-            st.info(
-                "Tidak terdapat data Fail."
-            )
-
-        else:
-
-            fig_fail_driver = px.bar(
-                fail_chart_data,
-                x="Nama Driver",
-                y="Jumlah Fail",
-                text_auto=True,
-                custom_data=["Depo"],
-                color_discrete_sequence=[
-                    "#E74C3C"
-                ],
-                labels={
-                    "Nama Driver": "Nama Driver",
-                    "Jumlah Fail": "Jumlah Fail",
-                },
-            )
-
-            fig_fail_driver.update_traces(
-                hovertemplate=(
-                    "<b>%{x}</b><br>"
-                    "Depo: %{customdata[0]}<br>"
-                    "Jumlah Fail: %{y:,.0f}"
-                    "<extra></extra>"
-                ),
-            )
-
-            fig_fail_driver.update_layout(
-                xaxis=dict(
-                    tickangle=-45,
-                ),
-                showlegend=False,
-            )
-
-            st.plotly_chart(
-                fig_fail_driver,
-                use_container_width=True,
-                config={
-                    "displayModeBar": True,
-                },
-            )
-
-st.divider()
-
-st.subheader(
-    "Perbandingan Jumlah Pass dan Fail Berdasarkan Driver"
-)
-
-pass_fail_driver = calculate_pass_fail_by_driver(
-    filtered_df
-)
-
-if pass_fail_driver.empty:
-
-    st.info(
-        "Tidak terdapat data driver untuk ditampilkan."
-    )
-
-else:
-
-    driver_total = (
-        pass_fail_driver
-        .groupby(
-            "Nama Driver"
-        )["Jumlah"]
-        .sum()
-        .reset_index()
-        .sort_values(
-            "Jumlah",
-            ascending=False,
-        )
-    )
-
-    max_driver_total = len(
-        driver_total
-    )
-
-    if max_driver_total >= 2:
-
-        default_driver_total = min(
-            10,
-            max_driver_total
-        )
-
-        selected_driver_total = st.slider(
-            "Jumlah Driver",
-            min_value=2,
-            max_value=max_driver_total,
-            value=default_driver_total,
-            key="pass_fail_driver_count",
-        )
-
-        selected_drivers_total = (
-            driver_total
-            .head(
-                selected_driver_total
-            )["Nama Driver"]
-            .tolist()
-        )
-
-        pass_fail_driver = (
-            pass_fail_driver[
-                pass_fail_driver[
-                    "Nama Driver"
-                ].isin(
-                    selected_drivers_total
-                )
-            ]
-        )
-
-    driver_order = (
-        driver_total[
-            driver_total[
-                "Nama Driver"
-            ].isin(
-                pass_fail_driver[
-                    "Nama Driver"
-                ]
-            )
-        ]
-        .sort_values(
-            "Jumlah",
-            ascending=True,
-        )["Nama Driver"]
-        .tolist()
-    )
-
-    fig_pass_fail_driver = px.bar(
-        pass_fail_driver,
-        x="Nama Driver",
-        y="Jumlah",
-        color="Location",
-        barmode="group",
-        text="Jumlah",
-        custom_data=["Depo"],
-        color_discrete_map={
-            "Pass": "#008000",
-            "Fail": "#E74C3C",
-        },
-        category_orders={
-            "Nama Driver": driver_order
-        },
-        labels={
-            "Nama Driver": "Nama Driver",
-            "Jumlah": "Jumlah FOL",
-            "Location": "Status",
-        },
-    )
-
-    fig_pass_fail_driver.update_traces(
-        texttemplate="%{text:.0f}",
-        textposition="outside",
-        hovertemplate=(
-            "<b>%{x}</b><br>"
-            "Depo: %{customdata[0]}<br>"
-            "Jumlah FOL: %{y:,.0f}"
-            "<extra>%{fullData.name}</extra> "
-        ),
-    )
-
-    fig_pass_fail_driver.update_layout(
-        yaxis=dict(
-            tickformat=",.0f",
-            rangemode="tozero",
-        ),
-    )
-
-    st.plotly_chart(
-        fig_pass_fail_driver,
-        use_container_width=True,
-    )
-
-st.divider()
-
-st.subheader(
-    "Pass vs Fail Berdasarkan Driver"
-)
-
-driver_summary = calculate_pass_fail_by_driver(
-    filtered_df
-)
-
-if driver_summary.empty:
-
-    st.info(
-        "Tidak terdapat data driver "
-        "untuk ditampilkan."
-    )
-
-else:
 
     ranking_column = (
         "Jumlah Pass"
@@ -891,306 +811,695 @@ else:
         ascending=False
     )
 
-    display_mode_driver = st.selectbox(
+    display_mode_analysis = st.selectbox(
+        "Tampilkan Berdasarkan",
+        [
+            "Persentase",
+            "Jumlah",
+        ],
+        key="driver_analysis_display_mode",
+    )
+
+    max_driver_analysis = len(
+        ranking_data
+    )
+
+    if max_driver_analysis <= 1:
+
+        top_n_analysis = 1
+
+    else:
+
+        top_n_analysis = st.slider(
+            "Top N Driver",
+            min_value=1,
+            max_value=max_driver_analysis,
+            value=min(
+                10,
+                max_driver_analysis
+            ),
+            key="top_n_analysis",
+        )
+
+    selected_drivers_analysis = (
+        ranking_data
+        .head(
+            top_n_analysis
+        )
+        .index
+        .tolist()
+    )
+
+    pass_chart_data = pass_data[
+        pass_data["Nama Driver"].isin(
+            selected_drivers_analysis
+        )
+    ].copy()
+
+    fail_chart_data = fail_data[
+        fail_data["Nama Driver"].isin(
+            selected_drivers_analysis
+        )
+    ].copy()
+
+    total_driver = (
+        driver_summary
+        .groupby(
+            "Nama Driver"
+        )["Jumlah"]
+        .sum()
+        .reset_index(
+            name="Total FOL"
+        )
+    )
+
+    pass_chart_data = pass_chart_data.merge(
+        total_driver,
+        on="Nama Driver",
+        how="left"
+    )
+
+    fail_chart_data = fail_chart_data.merge(
+        total_driver,
+        on="Nama Driver",
+        how="left"
+    )
+
+    pass_chart_data["Persentase Pass"] = (
+        pass_chart_data["Jumlah Pass"]
+        / pass_chart_data["Total FOL"]
+        * 100
+    )
+
+    fail_chart_data["Persentase Fail"] = (
+        fail_chart_data["Jumlah Fail"]
+        / fail_chart_data["Total FOL"]
+        * 100
+    )
+
+    pass_chart_data["Driver Depo"] = (
+        pass_chart_data["Nama Driver"]
+        + " ("
+        + pass_chart_data["Depo"]
+        + ")"
+    )
+
+    fail_chart_data["Driver Depo"] = (
+        fail_chart_data["Nama Driver"]
+        + " ("
+        + fail_chart_data["Depo"]
+        + ")"
+    )
+
+    pass_chart_data = pass_chart_data.sort_values(
+        "Persentase Pass"
+        if display_mode_analysis == "Persentase"
+        else "Jumlah Pass",
+        ascending=False
+    )
+
+    fail_chart_data = fail_chart_data.sort_values(
+        "Persentase Fail"
+        if display_mode_analysis == "Persentase"
+        else "Jumlah Fail",
+        ascending=False
+    )
+
+    col_pass, col_fail = st.columns(2)
+
+    with col_pass:
+
+        if display_mode_analysis == "Jumlah":
+
+            st.markdown(
+                "### Pass Terbanyak Berdasarkan Driver"
+            )
+
+            fig_pass_driver = px.bar(
+                pass_chart_data,
+                x="Driver Depo",
+                y="Jumlah Pass",
+                text_auto=".0f",
+                color_discrete_sequence=[
+                    "#008000"
+                ],
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Jumlah Pass": "Jumlah Pass",
+                },
+            )
+
+            fig_pass_driver.update_traces(
+                texttemplate="%{y:,.0f}",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Jumlah Pass: %{y:,.0f}<br>"
+                    "Total FOL: %{customdata[0]:,.0f}<br>"
+                    "Persentase Pass: %{customdata[1]:.1f}%"
+                    "<extra></extra>"
+                ),
+                customdata=pass_chart_data[
+                    [
+                        "Total FOL",
+                        "Persentase Pass",
+                    ]
+                ].values,
+            )
+
+            fig_pass_driver.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Jumlah Pass",
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                ),
+                showlegend=False,
+            )
+
+        else:
+
+            st.markdown(
+                "### Persentase Pass Berdasarkan Driver"
+            )
+
+            fig_pass_driver = px.bar(
+                pass_chart_data,
+                x="Driver Depo",
+                y="Persentase Pass",
+                text_auto=".1f",
+                color_discrete_sequence=[
+                    "#008000"
+                ],
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Persentase Pass": "Persentase Pass (%)",
+                },
+            )
+
+            fig_pass_driver.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Persentase Pass: %{y:.1f}%<br>"
+                    "Jumlah Pass: %{customdata[0]:,.0f}<br>"
+                    "Total FOL: %{customdata[1]:,.0f}"
+                    "<extra></extra>"
+                ),
+                customdata=pass_chart_data[
+                    [
+                        "Jumlah Pass",
+                        "Total FOL",
+                    ]
+                ].values,
+            )
+
+            fig_pass_driver.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Persentase Pass (%)",
+                    range=[0, 100],
+                    ticksuffix="%",
+                    dtick=20,
+                ),
+                showlegend=False,
+            )
+
+        st.plotly_chart(
+            fig_pass_driver,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+            key="pass_driver_analysis_chart",
+        )
+
+    with col_fail:
+
+        if display_mode_analysis == "Jumlah":
+
+            st.markdown(
+                "### Fail Terbanyak Berdasarkan Driver"
+            )
+
+            fig_fail_driver = px.bar(
+                fail_chart_data,
+                x="Driver Depo",
+                y="Jumlah Fail",
+                text_auto=".0f",
+                color_discrete_sequence=[
+                    "#E74C3C"
+                ],
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Jumlah Fail": "Jumlah Fail",
+                },
+            )
+
+            fig_fail_driver.update_traces(
+                texttemplate="%{y:,.0f}",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Jumlah Fail: %{y:,.0f}<br>"
+                    "Total FOL: %{customdata[0]:,.0f}<br>"
+                    "Persentase Fail: %{customdata[1]:.1f}%"
+                    "<extra></extra>"
+                ),
+                customdata=fail_chart_data[
+                    [
+                        "Total FOL",
+                        "Persentase Fail",
+                    ]
+                ].values,
+            )
+
+            fig_fail_driver.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Jumlah Fail",
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                ),
+                showlegend=False,
+            )
+
+        else:
+
+            st.markdown(
+                "### Persentase Fail Berdasarkan Driver"
+            )
+
+            fig_fail_driver = px.bar(
+                fail_chart_data,
+                x="Driver Depo",
+                y="Persentase Fail",
+                text_auto=".1f",
+                color_discrete_sequence=[
+                    "#E74C3C"
+                ],
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Persentase Fail": "Persentase Fail (%)",
+                },
+            )
+
+            fig_fail_driver.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Persentase Fail: %{y:.1f}%<br>"
+                    "Jumlah Fail: %{customdata[0]:,.0f}<br>"
+                    "Total FOL: %{customdata[1]:,.0f}"
+                    "<extra></extra>"
+                ),
+                customdata=fail_chart_data[
+                    [
+                        "Jumlah Fail",
+                        "Total FOL",
+                    ]
+                ].values,
+            )
+
+            fig_fail_driver.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Persentase Fail (%)",
+                    range=[0, 100],
+                    ticksuffix="%",
+                    dtick=20,
+                ),
+                showlegend=False,
+            )
+
+        st.plotly_chart(
+            fig_fail_driver,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+            key="fail_driver_analysis_chart",
+        )
+
+st.divider()
+
+st.subheader(
+    "Perbandingan Pass dan Fail Berdasarkan Driver"
+)
+
+driver_summary_final = calculate_pass_fail_by_driver(
+    filtered_df
+)
+
+if driver_summary_final.empty:
+
+    st.info(
+        "Tidak terdapat data driver untuk ditampilkan."
+    )
+
+else:
+
+    ranking_data_final = (
+        driver_summary_final
+        .pivot(
+            index="Nama Driver",
+            columns="Location",
+            values="Jumlah"
+        )
+        .fillna(0)
+    )
+
+    if "Pass" not in ranking_data_final.columns:
+        ranking_data_final["Pass"] = 0
+
+    if "Fail" not in ranking_data_final.columns:
+        ranking_data_final["Fail"] = 0
+
+    ranking_data_final["Jumlah Pass"] = (
+        ranking_data_final["Pass"]
+    )
+
+    ranking_data_final["Jumlah Fail"] = (
+        ranking_data_final["Fail"]
+    )
+
+    ranking_column_final = (
+        "Jumlah Pass"
+        if driver_analysis == "Pass"
+        else "Jumlah Fail"
+    )
+
+    ranking_data_final = ranking_data_final.sort_values(
+        ranking_column_final,
+        ascending=False
+    )
+
+    display_mode_final = st.selectbox(
         "Tampilkan Berdasarkan",
         [
             "Persentase",
             "Jumlah",
         ],
         index=0,
-        key="driver_display_mode",
+        key="driver_final_display_mode",
     )
 
-    max_driver = len(
-        ranking_data
+    max_driver_final = len(
+        ranking_data_final
     )
 
-    if max_driver <= 1:
+    if max_driver_final <= 1:
 
-        top_n_driver = 1
+        top_n_final = 1
 
     else:
 
-        top_n_driver = st.slider(
+        top_n_final = st.slider(
             "Top N Driver",
             min_value=1,
-            max_value=max_driver,
+            max_value=max_driver_final,
             value=min(
                 10,
-                max_driver
+                max_driver_final
             ),
-            key="top_n_driver_comparison",
+            key="driver_final_top_n",
         )
 
-    selected_drivers = (
-        ranking_data
+    selected_drivers_final = (
+        ranking_data_final
         .head(
-            top_n_driver
+            top_n_final
         )
         .index
         .tolist()
     )
 
-    driver_chart = driver_summary[
-        driver_summary[
+    driver_chart_final = driver_summary_final[
+        driver_summary_final[
             "Nama Driver"
         ].isin(
-            selected_drivers
+            selected_drivers_final
         )
     ].copy()
 
-    driver_chart["Nama Driver"] = pd.Categorical(
-        driver_chart[
-            "Nama Driver"
-        ],
-        categories=selected_drivers,
-        ordered=True
+    driver_chart_final["Driver Depo"] = (
+        driver_chart_final["Nama Driver"]
+        + " ("
+        + driver_chart_final["Depo"]
+        + ")"
     )
 
-    driver_chart = driver_chart.sort_values(
-        "Nama Driver"
+    driver_order_final = (
+        driver_chart_final
+        .groupby(
+            "Driver Depo"
+        )["Jumlah"]
+        .sum()
+        .sort_values(
+            ascending=True
+        )
+        .index
+        .tolist()
     )
 
-    if display_mode_driver == "Jumlah":
+    total_driver_final = (
+        driver_chart_final
+        .groupby(
+            "Nama Driver",
+            observed=True
+        )["Jumlah"]
+        .transform("sum")
+    )
 
-        fig_driver_comparison = px.bar(
-            driver_chart,
-            x="Nama Driver",
-            y="Jumlah",
-            color="Location",
-            barmode="stack",
-            text_auto=".0f",
-            color_discrete_map={
-                "Pass": "#008000",
-                "Fail": "#E74C3C",
-            },
-            labels={
-                "Nama Driver": "Nama Driver",
-                "Jumlah": "Jumlah FOL",
-                "Location": "Status",
-            },
+    driver_chart_final["Persentase"] = (
+        driver_chart_final["Jumlah"]
+        / total_driver_final
+        * 100
+    )
+
+    col_driver_1, col_driver_2 = st.columns(2)
+
+    with col_driver_1:
+
+        st.markdown(
+            "### Perbandingan Jumlah Pass dan Fail Berdasarkan Driver"
         )
 
-        fig_driver_comparison.update_traces(
-            hovertemplate=(
-                "<b>%{x}</b><br>"
-                "Status: %{fullData.name}<br>"
-                "Jumlah FOL: %{y:,.0f}"
-                "<extra></extra>"
+        if display_mode_final == "Jumlah":
+
+            fig_pass_fail_grouped = px.bar(
+                driver_chart_final,
+                x="Driver Depo",
+                y="Jumlah",
+                color="Location",
+                barmode="group",
+                text="Jumlah",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                category_orders={
+                    "Driver Depo": driver_order_final
+                },
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Jumlah": "Jumlah FOL",
+                    "Location": "Status",
+                },
             )
-        )
 
-        fig_driver_comparison.update_layout(
-            yaxis=dict(
-                title="Jumlah FOL",
-                tickformat=",.0f",
-                rangemode="tozero",
-            ),
-            xaxis=dict(
-                tickangle=-45,
-            ),
-        )
-
-    else:
-
-        total_driver = (
-            driver_chart
-            .groupby(
-                "Nama Driver",
-                observed=True
-            )["Jumlah"]
-            .transform("sum")
-        )
-
-        driver_chart["Persentase"] = (
-            driver_chart["Jumlah"]
-            / total_driver
-            * 100
-        )
-
-        fig_driver_comparison = px.bar(
-            driver_chart,
-            x="Nama Driver",
-            y="Persentase",
-            color="Location",
-            barmode="stack",
-            text_auto=".1f",
-            color_discrete_map={
-                "Pass": "#008000",
-                "Fail": "#E74C3C",
-            },
-            labels={
-                "Nama Driver": "Nama Driver",
-                "Persentase": "Persentase (%)",
-                "Location": "Status",
-            },
-        )
-
-        fig_driver_comparison.update_traces(
-            texttemplate="%{y:.1f}%",
-            textposition="inside",
-            hovertemplate=(
-                "<b>%{x}</b><br>"
-                "Status: %{fullData.name}<br>"
-                "Persentase: %{y:.1f}%"
-                "<extra></extra>"
-            ),
-        )
-
-        fig_driver_comparison.update_layout(
-            yaxis=dict(
-                title="Persentase (%)",
-                range=[0, 100],
-                ticksuffix="%",
-                dtick=20,
-            ),
-            xaxis=dict(
-                tickangle=-45,
-            ),
-        )
-
-    st.plotly_chart(
-        fig_driver_comparison,
-        use_container_width=True,
-        config={
-            "displayModeBar": True,
-        },
-    )
-
-st.divider()
-
-st.subheader(
-    "Pass vs Fail Berdasarkan Depo"
-)
-
-depo_summary = calculate_pass_fail_by_depo(
-    filtered_df
-)
-
-if depo_summary.empty:
-
-    st.info(
-        "Tidak terdapat data depo "
-        "untuk ditampilkan."
-    )
-
-else:
-
-    display_mode = st.selectbox(
-        "Tampilkan Berdasarkan",
-        [
-            "Jumlah",
-            "Persentase",
-        ],
-        key="depo_display_mode",
-    )
-
-    depo_chart = depo_summary.copy()
-
-    if display_mode == "Jumlah":
-
-        fig_depo = px.bar(
-            depo_chart,
-            x="Depo",
-            y="Jumlah",
-            color="Location",
-            barmode="group",
-            text_auto=".0f",
-            color_discrete_map={
-                "Pass": "#008000",
-                "Fail": "#E74C3C",
-            },
-            labels={
-                "Depo": "Nama Depo",
-                "Jumlah": "Jumlah FOL",
-                "Location": "Status",
-            },
-        )
-
-        fig_depo.update_traces(
-            hovertemplate=(
-                "<b>%{x}</b><br>"
-                "Status: %{fullData.name}<br>"
-                "Jumlah: %{y:,.0f}"
-                "<extra></extra>"
+            fig_pass_fail_grouped.update_traces(
+                texttemplate="%{y:,.0f}",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Jumlah FOL: %{y:,.0f}"
+                    "<extra></extra>"
+                ),
             )
-        )
 
-        fig_depo.update_layout(
-            yaxis=dict(
-                title="Jumlah FOL",
-                tickformat=",.0f",
-                rangemode="tozero",
-            ),
-            xaxis=dict(
-                tickangle=-45,
-            ),
-        )
-
-    else:
-
-        total_depo = (
-            depo_chart
-            .groupby(
-                "Depo"
-            )["Jumlah"]
-            .transform("sum")
-        )
-
-        depo_chart["Persentase"] = (
-            depo_chart["Jumlah"]
-            / total_depo
-            * 100
-        )
-
-        fig_depo = px.bar(
-            depo_chart,
-            x="Depo",
-            y="Persentase",
-            color="Location",
-            barmode="group",
-            text_auto=".1f%",
-            color_discrete_map={
-                "Pass": "#008000",
-                "Fail": "#E74C3C",
-            },
-            labels={
-                "Depo": "Nama Depo",
-                "Persentase": "Persentase (%)",
-                "Location": "Status",
-            },
-        )
-
-        fig_depo.update_traces(
-            texttemplate="%{y:.1f}%",
-            textposition="outside",
-            hovertemplate=(
-                "<b>%{x}</b><br>"
-                "Status: %{fullData.name}<br>"
-                "Persentase: %{y:.1f}%"
-                "<extra></extra>"
+            fig_pass_fail_grouped.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Jumlah FOL",
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                ),
             )
+
+        else:
+
+            fig_pass_fail_grouped = px.bar(
+                driver_chart_final,
+                x="Driver Depo",
+                y="Persentase",
+                color="Location",
+                barmode="group",
+                text="Persentase",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                category_orders={
+                    "Driver Depo": driver_order_final
+                },
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Persentase": "Persentase (%)",
+                    "Location": "Status",
+                },
+            )
+
+            fig_pass_fail_grouped.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="outside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Persentase: %{y:.1f}%"
+                    "<extra></extra>"
+                ),
+            )
+
+            fig_pass_fail_grouped.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Persentase (%)",
+                    range=[0, 100],
+                    ticksuffix="%",
+                    dtick=20,
+                ),
+            )
+
+        st.plotly_chart(
+            fig_pass_fail_grouped,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+            key="final_driver_grouped_chart",
         )
 
-        fig_depo.update_layout(
-            yaxis=dict(
-                title="Persentase (%)",
-                range=[0, 100],
-                ticksuffix="%",
-                dtick=20,
-            ),
-            xaxis=dict(
-                tickangle=-45,
-            ),
+    with col_driver_2:
+
+        st.markdown(
+            "### Pass vs Fail Berdasarkan Driver"
         )
 
-    st.plotly_chart(
-        fig_depo,
-        use_container_width=True,
-        config={
-            "displayModeBar": True,
-        },
-    )
+        if display_mode_final == "Jumlah":
+
+            fig_pass_fail_stacked = px.bar(
+                driver_chart_final,
+                x="Driver Depo",
+                y="Jumlah",
+                color="Location",
+                barmode="stack",
+                text="Jumlah",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                category_orders={
+                    "Driver Depo": driver_order_final
+                },
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Jumlah": "Jumlah FOL",
+                    "Location": "Status",
+                },
+            )
+
+            fig_pass_fail_stacked.update_traces(
+                texttemplate="%{y:,.0f}",
+                textposition="inside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Jumlah FOL: %{y:,.0f}"
+                    "<extra></extra>"
+                ),
+            )
+
+            fig_pass_fail_stacked.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Jumlah FOL",
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                ),
+            )
+
+        else:
+
+            fig_pass_fail_stacked = px.bar(
+                driver_chart_final,
+                x="Driver Depo",
+                y="Persentase",
+                color="Location",
+                barmode="stack",
+                text="Persentase",
+                color_discrete_map={
+                    "Pass": "#008000",
+                    "Fail": "#E74C3C",
+                },
+                category_orders={
+                    "Driver Depo": driver_order_final
+                },
+                labels={
+                    "Driver Depo": "Driver (Depo)",
+                    "Persentase": "Persentase (%)",
+                    "Location": "Status",
+                },
+            )
+
+            fig_pass_fail_stacked.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="inside",
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Status: %{fullData.name}<br>"
+                    "Persentase: %{y:.1f}%"
+                    "<extra></extra>"
+                ),
+            )
+
+            fig_pass_fail_stacked.update_layout(
+                xaxis=dict(
+                    tickangle=-45,
+                ),
+                yaxis=dict(
+                    title="Persentase (%)",
+                    range=[0, 100],
+                    ticksuffix="%",
+                    dtick=20,
+                ),
+            )
+
+        st.plotly_chart(
+            fig_pass_fail_stacked,
+            use_container_width=True,
+            config={
+                "displayModeBar": True,
+            },
+            key="final_driver_stacked_chart",
+        )
 
 st.divider()
 

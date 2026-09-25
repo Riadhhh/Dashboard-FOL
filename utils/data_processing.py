@@ -21,7 +21,6 @@ VALID_DRIVERS = [
     "Ahmad Budi Amin Nasution",
     "Teddy  Desrian",
     "Hermawan Susanto",
-    "Dedi Rohadi",
     "Mukhlis",
     "Rido Al Fazar",
     "Rizki Ade Syahputra",
