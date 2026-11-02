@@ -592,14 +592,12 @@ daily_summary = calculate_daily_summary(
 )
 
 if daily_summary.empty:
-
     st.info(
         "Tidak terdapat data dengan Tanggal Order Priority "
         "yang dapat ditampilkan."
     )
 
 else:
-
     daily_summary[
         "Tanggal Order Priority"
     ] = pd.to_datetime(

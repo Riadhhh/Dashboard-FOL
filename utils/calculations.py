@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def calculate_kpis(df):
     total_fol = len(df)
 
