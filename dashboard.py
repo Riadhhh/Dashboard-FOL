@@ -11,6 +11,8 @@ from utils.data_processing import (
     VALID_DRIVERS,
 )
 
+from utils.overview import render_overview
+
 from utils.calculations import (
     calculate_kpis,
     calculate_location_summary,
@@ -28,12 +30,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("Dashboard FOL")
-
-st.caption(
-    "Dashboard untuk menganalisis data FOL berdasarkan "
-    "tanggal, driver, depo, serta status Pass dan Fail."
-)
 
 with st.sidebar:
 
@@ -66,6 +62,11 @@ for uploaded_file in uploaded_files:
             uploaded_file
         )
 
+        # Normalisasi nama kolom sebelum validasi, agar "Depo " terbaca "Depo".
+        df_file.columns = [
+            col.strip() if isinstance(col, str) else col
+            for col in df_file.columns
+        ]
         valid, missing_columns = validate_columns(
             df_file
         )
@@ -95,16 +96,10 @@ for uploaded_file in uploaded_files:
         )
 
 if error_files:
-
-    st.warning(
-        "⚠️ Beberapa file tidak dapat diproses:"
-    )
-
+    st.error("Validasi upload belum berhasil. Perbaiki file berikut:")
     for error in error_files:
-
-        st.write(
-            f"- {error}"
-        )
+        st.write(f"- {error}")
+    st.stop()
 
 if not dataframes:
 
@@ -156,6 +151,32 @@ df = df[
     )
 ].copy()
 
+# Validasi akhir terhadap dataset gabungan sebelum mode dashboard tersedia.
+if df.empty:
+    st.error("Tidak ada data Driver FOL yang memenuhi kriteria validasi.")
+    st.stop()
+
+min_date, max_date = get_data_period(df)
+if min_date is None or max_date is None:
+    st.error("Tidak ada tanggal order valid setelah data diproses.")
+    st.stop()
+
+with st.sidebar:
+    st.divider()
+    view_mode = st.radio(
+        "Mode Dashboard",
+        ["Dashboard Overview", "Full Analysis"],
+        key="dashboard_mode",
+        help="Ditampilkan setelah seluruh file berhasil divalidasi.",
+    )
+
+if view_mode == "Full Analysis":
+    st.title("Dashboard FOL")
+    st.caption(
+        "Dashboard untuk menganalisis data FOL berdasarkan "
+        "tanggal, driver, depo, serta status Pass dan Fail."
+    )
+
 if "week_selection" not in st.session_state:
 
     st.session_state.week_selection = []
@@ -174,20 +195,15 @@ with st.sidebar:
 
     st.header("Filter Data")
 
-    st.subheader(
-        "Fokus Analisis Driver"
-    )
-
-    driver_analysis = st.radio(
-        "Pilih status",
-        options=[
-            "Pass",
-            "Fail",
-        ],
-        index=1,
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+    if view_mode == "Full Analysis":
+        st.subheader("Fokus Analisis Driver")
+        driver_analysis = st.radio(
+            "Pilih status",
+            options=["Pass", "Fail"],
+            index=1,
+            horizontal=True,
+            label_visibility="collapsed",
+        )
 
     min_date, max_date = get_data_period(
         df
@@ -345,50 +361,24 @@ total_data = (
     .replace(",", ".")
 )
 
+if view_mode == "Dashboard Overview":
+    render_overview(filtered_df, total_rows=len(df))
+    st.stop()
+
 st.caption(
     f"Menampilkan {total_filtered} "
     f"dari {total_data} data FOL"
 )
 
-kpis = calculate_kpis(
-    filtered_df
-)
+kpis = calculate_kpis(filtered_df)
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-col1.metric(
-    "Total FOL",
-    f"{kpis['total_fol']:,}".replace(
-        ",",
-        "."
-    ),
-)
-
-col2.metric(
-    "Total Pass",
-    f"{kpis['total_pass']:,}".replace(
-        ",",
-        "."
-    ),
-)
-
-col3.metric(
-    "Total Fail",
-    f"{kpis['total_fail']:,}".replace(
-        ",",
-        "."
-    ),
-)
-
-col4.metric(
-    "Persentase Pass",
-    f"{kpis['persentase_pass']:.1f}%",
-)
-
-col5.metric(
-    "Persentase Fail",
-    f"{kpis['persentase_fail']:.1f}%",
-)
+col1.metric("Total FOL", f"{kpis['total_fol']:,}".replace(",", "."))
+col2.metric("Total Pass", f"{kpis['total_pass']:,}".replace(",", "."))
+col3.metric("Total Fail", f"{kpis['total_fail']:,}".replace(",", "."))
+col4.metric("Persentase Pass", f"{kpis['persentase_pass']:.1f}%")
+col5.metric("Persentase Fail", f"{kpis['persentase_fail']:.1f}%")
 
 st.divider()
 
@@ -418,7 +408,7 @@ with col_distribution:
             values="Jumlah",
             color="Location",
             color_discrete_map={
-                "Pass": "#008000",
+                "Pass": "#237E7A",
                 "Fail": "#E74C3C",
             },
         )
@@ -485,7 +475,7 @@ with col_depo:
                 barmode="group",
                 text_auto=".0f",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 labels={
@@ -539,7 +529,7 @@ with col_depo:
                 barmode="group",
                 text_auto=".1f",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 labels={
@@ -630,7 +620,6 @@ else:
     )
 
     if display_mode_daily == "Persentase":
-
         fig_daily = px.line(
             daily_summary,
             x="Tanggal Order Priority",
@@ -639,7 +628,7 @@ else:
             markers=True,
             text="Persentase",
             color_discrete_map={
-                "Pass": "#008000",
+                "Pass": "#237E7A",
                 "Fail": "#E74C3C",
             },
             labels={
@@ -685,7 +674,6 @@ else:
         )
 
     else:
-
         fig_daily = px.line(
             daily_summary,
             x="Tanggal Order Priority",
@@ -694,7 +682,7 @@ else:
             markers=True,
             text="Jumlah",
             color_discrete_map={
-                "Pass": "#008000",
+                "Pass": "#237E7A",
                 "Fail": "#E74C3C",
             },
             labels={
@@ -762,14 +750,12 @@ fail_data = calculate_fail_by_driver(
 )
 
 if pass_data.empty and fail_data.empty:
-
     st.info(
         "Tidak terdapat data driver "
         "untuk ditampilkan."
     )
 
 else:
-
     driver_summary = calculate_pass_fail_by_driver(
         filtered_df
     )
@@ -939,7 +925,7 @@ else:
                 y="Jumlah Pass",
                 text_auto=".0f",
                 color_discrete_sequence=[
-                    "#008000"
+                    "#237E7A"
                 ],
                 labels={
                     "Driver Depo": "Driver (Depo)",
@@ -989,7 +975,7 @@ else:
                 y="Persentase Pass",
                 text_auto=".1f",
                 color_discrete_sequence=[
-                    "#008000"
+                    "#237E7A"
                 ],
                 labels={
                     "Driver Depo": "Driver (Depo)",
@@ -1303,7 +1289,7 @@ else:
                 barmode="group",
                 text="Jumlah",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 category_orders={
@@ -1348,7 +1334,7 @@ else:
                 barmode="group",
                 text="Persentase",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 category_orders={
@@ -1409,7 +1395,7 @@ else:
                 barmode="stack",
                 text="Jumlah",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 category_orders={
@@ -1454,7 +1440,7 @@ else:
                 barmode="stack",
                 text="Persentase",
                 color_discrete_map={
-                    "Pass": "#008000",
+                    "Pass": "#237E7A",
                     "Fail": "#E74C3C",
                 },
                 category_orders={
